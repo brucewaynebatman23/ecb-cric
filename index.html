@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Badminton Academy — Fee Manager</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    body { background:#f5f7fb; }
+    .glass { background:rgba(255,255,255,.88); backdrop-filter:blur(14px); }
+    .shadow-premium { box-shadow:0 12px 35px rgba(15,23,42,.08); }
+    .modal-backdrop { background:rgba(15,23,42,.6); backdrop-filter:blur(5px); }
+    input, select, textarea { outline:none; }
+    .chart-wrap { position:relative; height:320px; }
+  </style>
+</head>
+
+<body class="text-slate-800">
+
+<div id="loading"
+     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 text-white">
+  <div class="text-center">
+    <i class="ph ph-spinner animate-spin text-4xl"></i>
+    <p class="mt-3">Connecting to your academy database…</p>
+  </div>
+</div>
+
+<div id="app" class="hidden min-h-screen">
+
+  <!-- HEADER -->
+  <header class="bg-slate-950 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row gap-4
+                justify-between items-start sm:items-center">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="bg-emerald-500 p-2 rounded-xl">
+            <i class="ph ph-shuttlecock text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold">Academy Fee Manager</h1>
+            <p class="text-slate-400 text-sm">Student & payment dashboard</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="bulkBtn"
+        class="bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 rounded-xl
+               font-semibold flex items-center gap-2 transition">
+        <i class="ph ph-whatsapp-logo text-xl"></i>
+        Bulk Reminders
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- KPI -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="glass shadow-premium rounded-2xl p-5">
+        <div class="flex justify-between">
+          <div>
+            <p class="text-sm text-slate-500">Total Students</p>
+            <p id="kpiStudents" class="text-3xl font-bold mt-2">0</p>
+          </div>
+          <div class="bg-indigo-100 text-indigo-600 p-3 rounded-xl">
+            <i class="ph ph-users-three text-2xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass shadow-premium rounded-2xl p-5">
+        <div class="flex justify-between">
+          <div>
+            <p class="text-sm text-slate-500">Expected Revenue</p>
+            <p id="kpiExpected" class="text-3xl font-bold mt-2">₹0</p>
+          </div>
+          <div class="bg-amber-100 text-amber-600 p-3 rounded-xl">
+            <i class="ph ph-currency-inr text-2xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass shadow-premium rounded-2xl p-5">
+        <div class="flex justify-between">
+          <div>
+            <p class="text-sm text-slate-500">Actual Collected</p>
+            <p id="kpiActual" class="text-3xl font-bold mt-2">₹0</p>
+          </div>
+          <div class="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
+            <i class="ph ph-check-circle text-2xl"></i>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARTS -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl shadow-premium p-5">
+        <h2 class="font-bold text-lg mb-4">Monthly Income</h2>
+        <div class="chart-wrap">
+          <canvas id="incomeChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-premium p-5">
+        <h2 class="font-bold text-lg mb-4">Fee Status Distribution</h2>
+        <div class="chart-wrap">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADD STUDENT -->
+    <section class="bg-white rounded-2xl shadow-premium p-5">
+      <div class="flex items-center gap-2 mb-5">
+        <i class="ph ph-user-plus text-xl text-emerald-600"></i>
+        <h2 class="text-lg font-bold">Add Student</h2>
+      </div>
+
+      <form id="studentForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <div>
+          <label class="text-sm font-medium">Student Name *</label>
+          <input id="studentName" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="e.g. Aarav Sharma">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">WhatsApp Number *</label>
+          <input id="whatsapp" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="e.g. 9876543210">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Parent's Name</label>
+          <input id="parentName"
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="Optional">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Batch Details *</label>
+          <input id="batch" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="e.g. Morning 7–8 AM">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Fee Month *</label>
+          <input id="feeMonth" type="month" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Total Expected Fee (₹) *</label>
+          <input id="expectedFee" type="number" min="0" step="0.01" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="e.g. 2500">
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Fee Status *</label>
+          <select id="status" required
+            class="mt-1 w-full border rounded-xl px-3 py-2.5 bg-white">
+            <option value="">Select status</option>
+            <option value="Paid">Paid</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Partial">Partial</option>
+          </select>
+        </div>
+
+        <div id="partialWrap" class="hidden">
+          <label class="text-sm font-medium">Amount Actually Paid (₹) *</label>
+          <input id="paidAmount" type="number" min="0" step="0.01"
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="Amount received">
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-3">
+          <label class="text-sm font-medium">Description / Notes</label>
+          <textarea id="notes" rows="2"
+            class="mt-1 w-full border rounded-xl px-3 py-2.5"
+            placeholder="Optional notes"></textarea>
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-3 flex justify-end">
+          <button
+            class="bg-slate-950 hover:bg-slate-800 text-white px-6 py-2.5
+                   rounded-xl font-semibold flex items-center gap-2">
+            <i class="ph ph-plus"></i>
+            Add Student
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- STUDENTS -->
+    <section class="bg-white rounded-2xl shadow-premium overflow-hidden">
+      <div class="p-5 border-b flex flex-col sm:flex-row gap-3
+                  justify-between sm:items-center">
+        <div>
+          <h2 class="text-lg font-bold">Students</h2>
+          <p class="text-sm text-slate-500">Live data from Firestore</p>
+        </div>
+
+        <input id="search"
+          class="border rounded-xl px-3 py-2 w-full sm:w-72"
+          placeholder="Search student or batch…">
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-500">
+            <tr>
+              <th class="text-left p-4">Student</th>
+              <th class="text-left p-4">Batch</th>
+              <th class="text-left p-4">Month</th>
+              <th class="text-right p-4">Expected</th>
+              <th class="text-right p-4">Paid</th>
+              <th class="text-right p-4">Pending</th>
+              <th class="text-left p-4">Status</th>
+              <th class="text-right p-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTable"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="hidden p-12 text-center text-slate-400">
+        <i class="ph ph-users-three text-5xl"></i>
+        <p class="mt-3">No students added yet.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- BULK MODAL -->
+<div id="bulkModal"
+  class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+
+  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+
+    <div class="flex justify-between items-center mb-5">
+      <div>
+        <p class="text-sm text-slate-500">Bulk Reminder Queue</p>
+        <h2 id="bulkTitle" class="text-xl font-bold">Student</h2>
+      </div>
+      <button id="closeBulk" class="text-slate-400 hover:text-slate-700">
+        <i class="ph ph-x text-2xl"></i>
+      </button>
+    </div>
+
+    <div id="bulkContent" class="bg-slate-50 rounded-xl p-4 mb-5"></div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <a id="bulkWhatsApp" target="_blank"
+        class="bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl
+               py-3 text-center font-semibold cursor-pointer">
+        1. Open WhatsApp
+      </a>
+
+      <button id="nextStudent"
+        class="bg-slate-950 hover:bg-slate-800 text-white rounded-xl
+               py-3 font-semibold">
+        2. Next Student
+      </button>
+
+      <button id="bulkCopy"
+        class="border border-slate-300 hover:bg-slate-50 rounded-xl
+               py-3 font-semibold">
+        Copy Message
+      </button>
+    </div>
+
+    <p id="bulkProgress" class="text-center text-xs text-slate-400 mt-4"></p>
+  </div>
+</div>
+
+<div id="toast"
+  class="fixed bottom-5 right-5 hidden bg-slate-950 text-white
+         px-4 py-3 rounded-xl shadow-xl z-[200]"></div>
+
+<script type="module">
+
+/* ============================================================
+   FIREBASE CONFIGURATION
+   Replace these values with your Firebase Web App configuration.
+   Firebase Console → Project settings → Your apps → Web app
+   ============================================================ */
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+/* ============================================================
+   FIREBASE
+   ============================================================ */
+
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let students = [];
+let incomeChart = null;
+let statusChart = null;
+let bulkQueue = [];
+let bulkIndex = 0;
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+const money = value =>
+  "₹" + Number(value || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2
+  });
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizePhone(phone) {
+  let digits = String(phone || "").replace(/\D/g, "");
+
+  // India-friendly handling:
+  if (digits.length === 10) digits = "91" + digits;
+
+  return digits;
+}
+
+function pendingAmount(student) {
+  return Math.max(
+    0,
+    Number(student.expectedFee || 0) -
+    Number(student.paidAmount || 0)
+  );
+}
+
+function makeReminderMessage(student) {
+  const pending = pendingAmount(student);
+
+  return `Hello ${student.parentName || student.studentName},
+
+This is a friendly fee reminder from our badminton academy.
+
+Student: ${student.studentName}
+Batch: ${student.batch}
+Fee Month: ${formatMonth(student.feeMonth)}
+Status: ${student.status}
+Pending Amount: ${money(pending)}
+
+Kindly clear the pending fee at your earliest convenience.
+
+Thank you,
+Badminton Academy`;
+}
+
+function whatsappURL(student) {
+  const phone = normalizePhone(student.whatsapp);
+  const message = encodeURIComponent(makeReminderMessage(student));
+
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${message}`;
+}
+
+function formatMonth(value) {
+  if (!value) return "-";
+
+  const [year, month] = value.split("-");
+
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    1
+  ).toLocaleDateString("en-IN", {
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function showToast(message) {
+  const toast = $("toast");
+
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+
+  setTimeout(() => toast.classList.add("hidden"), 2200);
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+
+signInAnonymously(auth).catch(error => {
+  console.error(error);
+  $("loading").innerHTML = `
+    <div class="text-center px-6">
+      <i class="ph ph-warning-circle text-5xl text-red-400"></i>
+      <p class="mt-3 font-semibold">Firebase authentication failed.</p>
+      <p class="text-sm text-slate-400 mt-2">
+        Check your Firebase configuration and enable Anonymous Authentication.
+      </p>
+    </div>`;
+});
+
+onAuthStateChanged(auth, user => {
+  if (!user) return;
+
+  currentUser = user;
+
+  $("loading").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  listenToStudents();
+});
+
+/* ============================================================
+   FIRESTORE
+   Each anonymous Firebase account gets its own student collection.
+   This prevents different anonymous users from sharing academy data.
+   ============================================================ */
+
+function studentsCollection() {
+  return collection(db, "users", currentUser.uid, "students");
+}
+
+function listenToStudents() {
+  const q = query(
+    studentsCollection(),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(q, snapshot => {
+    students = snapshot.docs.map(item => ({
+      id: item.id,
+      ...item.data()
+    }));
+
+    renderAll();
+  }, error => {
+    console.error(error);
+    showToast("Could not load Firestore data.");
+  });
+}
+
+/* ============================================================
+   ADD STUDENT
+   ============================================================ */
+
+$("status").addEventListener("change", () => {
+  const partial = $("status").value === "Partial";
+
+  $("partialWrap").classList.toggle("hidden", !partial);
+  $("paidAmount").required = partial;
+
+  if (!partial) {
+    $("paidAmount").value = "";
+  }
+});
+
+$("studentForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentUser) return;
+
+  const status = $("status").value;
+  const expectedFee = Number($("expectedFee").value);
+
+  let paidAmount = 0;
+
+  if (status === "Paid") {
+    paidAmount = expectedFee;
+  } else if (status === "Partial") {
+    paidAmount = Number($("paidAmount").value);
+
+    if (paidAmount <= 0 || paidAmount >= expectedFee) {
+      showToast("Partial payment must be less than expected fee.");
+      return;
+    }
+  }
+
+  if (status === "Unpaid") {
+    paidAmount = 0;
+  }
+
+  const data = {
+    studentName: $("studentName").value.trim(),
+    whatsapp: $("whatsapp").value.trim(),
+    parentName: $("parentName").value.trim(),
+    batch: $("batch").value.trim(),
+    feeMonth: $("feeMonth").value,
+    expectedFee,
+    paidAmount,
+    status,
+    notes: $("notes").value.trim(),
+    createdAt: serverTimestamp()
+  };
+
+  try {
+    await addDoc(studentsCollection(), data);
+
+    $("studentForm").reset();
+    $("partialWrap").classList.add("hidden");
+    $("paidAmount").required = false;
+
+    showToast("Student added successfully.");
+  } catch (error) {
+    console.error(error);
+    showToast("Could not save student.");
+  }
+});
+
+/* ============================================================
+   DELETE
+   ============================================================ */
+
+window.deleteStudent = async id => {
+  if (!confirm("Delete this student record permanently?")) return;
+
+  try {
+    await deleteDoc(doc(
+      db,
+      "users",
+      currentUser.uid,
+      "students",
+      id
+    ));
+
+    showToast("Student deleted.");
+  } catch (error) {
+    console.error(error);
+    showToast("Could not delete student.");
+  }
+};
+
+/* ============================================================
+   COPY
+   ============================================================ */
+
+window.copyStudentMessage = async id => {
+  const student = students.find(s => s.id === id);
+  if (!student) return;
+
+  await navigator.clipboard.writeText(
+    makeReminderMessage(student)
+  );
+
+  showToast("Reminder copied.");
+};
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+function renderTable() {
+  const queryText = $("search").value.toLowerCase().trim();
+
+  const filtered = students.filter(student =>
+    `${student.studentName} ${student.batch} ${student.parentName || ""}`
+      .toLowerCase()
+      .includes(queryText)
+  );
+
+  $("studentTable").innerHTML = "";
+
+  $("emptyState").classList.toggle(
+    "hidden",
+    filtered.length !== 0
+  );
+
+  filtered.forEach(student => {
+
+    const pending = pendingAmount(student);
+
+    let badge = "";
+
+    if (student.status === "Paid") {
+      badge = `
+        <span class="px-2.5 py-1 rounded-full bg-emerald-100
+                     text-emerald-700 text-xs font-semibold">
+          Paid
+        </span>`;
+    } else if (student.status === "Partial") {
+      badge = `
+        <span class="px-2.5 py-1 rounded-full bg-amber-100
+                     text-amber-700 text-xs font-semibold">
+          Partial
+        </span>`;
+    } else {
+      badge = `
+        <span class="px-2.5 py-1 rounded-full bg-red-100
+                     text-red-700 text-xs font-semibold">
+          Unpaid
+        </span>`;
+    }
+
+    const reminder = student.status !== "Paid"
+      ? `
+        <div class="flex justify-end gap-1.5">
+          <a
+            href="${whatsappURL(student)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="bg-emerald-500 hover:bg-emerald-400 text-white
+                   px-2.5 py-2 rounded-lg"
+            title="Open WhatsApp">
+            <i class="ph ph-whatsapp-logo"></i>
+          </a>
+
+          <button
+            onclick="copyStudentMessage('${student.id}')"
+            class="border px-2.5 py-2 rounded-lg hover:bg-slate-50"
+            title="Copy message">
+            <i class="ph ph-copy"></i>
+          </button>
+        </div>`
+      : `
+        <div class="flex justify-end">
+          <button
+            onclick="deleteStudent('${student.id}')"
+            class="text-red-500 hover:bg-red-50 px-2.5 py-2 rounded-lg"
+            title="Delete">
+            <i class="ph ph-trash"></i>
+          </button>
+        </div>`;
+
+    $("studentTable").insertAdjacentHTML("beforeend", `
+      <tr class="border-t hover:bg-slate-50">
+        <td class="p-4">
+          <div class="font-semibold">${escapeHTML(student.studentName)}</div>
+          ${student.parentName
+            ? `<div class="text-xs text-slate-400">
+                 Parent:
